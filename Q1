@@ -1,1 +1,90 @@
+#Step 0. 필요한 모듈과 라이브러리를 로딩하고 검색어를 입력 받습니다
+from bs4 import BeautifulSoup     
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+import time
+import re
+import os
+import numpy as np
 
+
+def ins_query(query):
+    driver.find_element(By.ID,'bidNm').click()
+    element = driver.find_element(By.ID, 'bidNm')
+    element.send_keys(query_txt)
+def ins_f_date(f_date):
+    data_element = driver.find_element(By.ID, 'fromBidDt')
+    data_element.click()
+    data_element.send_keys(Keys.CONTROL,'A')
+    data_element.send_keys(f_date)
+def ins_s_date(s_date):
+    data_element = driver.find_element(By.ID, 'toBidDt')
+    data_element.click()
+    data_element.send_keys(Keys.CONTROL,'A')
+    data_element.send_keys(s_date)
+    
+    #Step 1. 크롬 드라이버를 사용해서 웹 브라우저를 실행합니다.
+path = "C:/Users/kaoka/big_data_subject/SNS_data/chromedriver.exe"
+driver = webdriver.Chrome(path)
+
+driver.get("https://www.g2b.go.kr/index.jsp")
+time.sleep(2)  # 위 페이지가 모두 열릴 때 까지 2초 기다립니다.
+
+query_txt = input('크롤링할 키워드는 무엇입니까?: ')
+f_date = input('조회 시작일자 검색 (예: 2019/01/01)')
+s_date = input('조회 시작일자 검색 (예: 2019/03/31)')
+ins_query(query_txt)
+ins_f_date(f_date)
+ins_s_date(s_date)
+driver.find_element(By.CLASS_NAME,'btn_dark').click()
+
+# 자바스크립트를 불러와서 내부 테이블 표시 사이트 주소찾기
+html = driver.page_source
+soup = BeautifulSoup(html, 'html.parser')
+content_list = soup.find_all('script')
+content_list_all = soup.find_all
+content_str = str(content_list)
+
+# 정규 표현식으로 내부테이블 사이트 추출
+pattern  = r'https(.*?)"'
+href_value = re.search(pattern, content_str).group().strip('"')
+
+# 테이블 사이트 접속
+driver.get(href_value)
+time.sleep(2)
+
+page = 1
+while(1):
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'html.parser')
+#     데이터 불러오기
+    content = soup.find('table')
+    content_list = content.find('tbody').find_all('td')
+#     다음으로 넘어갔을때 데이터가 없으면 끝내기
+    if(content_list[0].get_text() == '검색된 데이터가 없습니다.'):
+        break
+    if(page == 1):
+#         열 데이터 불러오기
+        content_tr = content.find('thead').find_all('th')
+        title = [i.get_text() for i in content_tr]
+        con_list = np.array(title)
+    con = []
+    con.append(content_list[0].get_text())
+    
+#     10개의 데이터를 한 행으로 만듦
+    for i in range(1,len(content_list)):
+        if (i%10) == 0:
+            con_list = np.vstack((con_list,con))
+            con = []
+        con.append(content_list[i].get_text())
+        
+    con_list = np.vstack((con_list,con))
+#     다음 으로 넘어감
+    driver.execute_script('to_more(1)')
+    page+=1
+    
+    # 저장위치
+path = 'C:/exam/Q1/'
+os.chdir(path)
+np.savetxt('sample5.csv',con_list,delimiter=",", fmt='%s')
