@@ -1,0 +1,45 @@
+from bs4 import BeautifulSoup     
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+import os
+
+path = '/opt/homebrew/Caskroom/chromedriver/112.0.5615.49/chromedriver'
+driver = webdriver.Chrome(path)
+driver.get("https://pixabay.com/ko/")
+time.sleep(1)
+
+query = input("검색할 사진을 입력해 주세요")
+count= int(input("다운받으실 수량을 입력해 주세요"))
+
+path = '/opt/homebrew/Caskroom/chromedriver/112.0.5615.49/chromedriver'
+driver = webdriver.Chrome(path)
+driver.get("https://pixabay.com/ko/")
+time.sleep(1)
+
+element=driver.find_element(By.NAME, 'search')
+driver.find_element(By.NAME, 'search').send_keys(query+"\n")
+time.sleep(1)
+html = driver.page_source
+soup = BeautifulSoup(html, 'html.parser')
+
+path = 'C:/exam/Q3/'
+n = 1
+itir = int(count/100)+1
+count = count%100
+for j in range(itir):
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'html.parser')
+    xpath = '//*[@id="app"]/div[1]/div/div[2]/div[3]'
+    image_area = driver.find_element(By.XPATH,xpath)
+    image_elements = image_area.find_elements(By.TAG_NAME,"img")
+    for i in range(len(image_elements)):
+        if j == itir:
+            for i in range(count):
+                print("Rmx")
+                image_elements[i].screenshot(path+str(n)+ ".png")
+                n+=1
+                break;
+        image_elements[i].screenshot(path+str(n)+ ".png")
+        n+=1
+    driver.find_element(By.XPATH,'//*[@id="app"]/div[1]/div/div[2]/div[5]/div[2]/a').click()
