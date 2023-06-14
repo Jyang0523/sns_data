@@ -1,0 +1,70 @@
+from bs4 import BeautifulSoup     
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+import time
+import numpy as np
+import os
+
+query = input("검색어를 입력해 주세요")
+nec = input("결과에 반드시 포함하는 단어를 입력하세요 (예: 국내 바닷가)"+"\n"+
+           "여러개일경우  띄워쓰기로 구분해서 입력해 주세요").split()
+unnec = input("결과에 반드시 제거할 단어를 입력하세요 (예: 국내 바닷가)"+"\n"+
+           "여러개일경우  띄워쓰기로 구분해서 입력해 주세요").split()
+f_date = int(input("검색할 날자를 입력해 주세요(이전)"))
+l_date = int(input("검색할 날자를 입력해 주세요(이후)"))
+
+# 필수항목은 "항목" 표시로 검색
+for i in range(len(nec)):
+    nec[i] = '"'+nec[i]+'"'
+
+# 버릴항목은 -항목 표시로 검색
+for i in range(len(unnec)):
+    unnec[i] = '-'+unnec[i] 
+    
+path = "C:/Users/kaoka/big_data_subject/SNS_data/chromedriver.exe"
+driver = webdriver.Chrome(path)
+driver.get("https://section.blog.naver.com/BlogHome.naver?directoryNo=0&currentPage=1&groupId=0")
+element = driver.find_element(By.CLASS_NAME, 'textbox')
+element.send_keys(query+" ")
+element.send_keys(nec)
+element.send_keys(unnec)
+element.send_keys("\n")
+time.sleep(2)
+driver.find_element(By.CLASS_NAME,'present_selected').click()
+driver.find_element(By.ID,'search_start_date').send_keys("20190101")
+driver.find_element(By.ID,'search_end_date').send_keys("20190420")
+driver.find_element(By.ID,'periodSearch').click()
+
+html = driver.page_source
+soup = BeautifulSoup(html, 'html.parser')
+#     데이터 불러오기
+content = soup.find_all('div',class_='list_search_post')
+
+
+
+np_list = np.array(["블로그주소", "작성자 닉네임","작성일자","블로그내용"])
+for i in content:
+    content_list = []
+    blogLink=i.find('div','info_post').find('a','desc_inner').get('href')
+    content_list.append(blogLink)
+    print(blogLink)
+
+    nickName=i.find('div','info_post').find('em','name_author').get_text( )
+    content_list.append(nickName)
+    print(nickName)
+    
+    writeDate=i.find('div','info_post').find('span','date').get_text( )
+    content_list.append(writeDate)
+    print(writeDate)
+
+    content=i.find('div','info_post').find('a','text').get_text( )
+    content_list.append(content)
+    print(content)
+    
+    np_list = np.vstack((np_list,content_list))
+    
+# 저장위치
+path = 'C:/exam/Q2/'
+os.chdir(path)
+np.savetxt('sample1.csv',np_list,delimiter=",", fmt='%s')
